@@ -1,5 +1,5 @@
 let position = Date.now();
-let zoom = 150; // 1px = 1 day
+let zoom = 150; // px/day
 let velocity = 0;
 
 const oneDay = 1000 * 60 * 60 * 24;
@@ -24,6 +24,10 @@ function draw() {
 
   position += (velocity / zoom) * oneDay;
   velocity *= 0.9;
+
+  noStroke();
+  fill(200);
+  text(~~frameRate(), 10, 10);
 }
 
 function mouseDragged() {
@@ -45,49 +49,57 @@ function mouseWheel(event) {
 }
 
 function drawTimeline() {
-  let startOfCurrentDate = new Date(position);
-  startOfCurrentDate.setHours(0);
-  startOfCurrentDate.setMinutes(0);
-  startOfCurrentDate.setMilliseconds(0);
+  let date = new Date(position);
+  date = getStartOf.date(date);
 
   let _zoom = zoom;
-  while (_zoom < 30) {
+  while (_zoom < 100) {
     _zoom *= 2;
   }
 
-  let pos = startOfCurrentDate.getTime();
-  let deltaTime = position - pos;
-  let deltaX = map(deltaTime, 0, oneDay, 0, _zoom);
+  let t = date.getTime();
+  let dt = position - t;
+  let dx = map(dt, 0, oneDay, 0, _zoom);
 
-  // for (let d of [oneDay, oneWeek, oneMonth, oneYear, tenYears, hundredYears]) {
-  //   deltaX = map(deltaTime, 0, d, 0, zoom);
-  //   console.log(deltaX);
-  //   if (deltaX > 30) {
-  //     break;
-  //   }
-  // }
-
-  let c = width / 2 - deltaX;
+  let c = width / 2 - dx;
 
   stroke(200);
-  line(c, height / 2 - 5, c, height / 2 + 5);
-
+  fill(200);
   for (let x = c; x > 0; x -= _zoom) {
     line(x, height / 2 - 5, x, height / 2 + 5);
+    let d = new Date(position - (oneDay * (c - x)) / _zoom);
+    text(d.toLocaleDateString(), x, height / 2 + 15);
   }
   for (let x = c + _zoom; x < width; x += _zoom) {
     line(x, height / 2 - 5, x, height / 2 + 5);
-  }
-
-  noStroke();
-  fill(200);
-
-  for (let x = c; x > -400; x -= _zoom) {
-    let date = new Date(pos + (c - x) * oneDay);
-    text(date.toLocaleDateString(), x, height / 2 + 10);
-  }
-  for (let x = c + _zoom; x < 400 + width; x += _zoom) {
-    let date = new Date(pos + (x - c) * oneDay);
-    text(date.toLocaleDateString(), x, height / 2 + 10);
+    let d = new Date(position + (oneDay * (x - c)) / _zoom);
+    text(d.toLocaleDateString(), x, height / 2 + 15);
   }
 }
+
+function cloneDate(date) {
+  return new Date(date.getTime());
+}
+
+const getStartOf = {
+  date: (date) => {
+    date.setHours(0);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+  },
+  week: (date) => {
+    date.setDate(date.getDate() - (date.getDay() == 0 ? 6 : date.getDay()));
+    return getStartOf.date(date);
+  },
+  month: (date) => {
+    date.setDate(1);
+    return getStartOf.date(date);
+  },
+  year: (date) => {
+    date.setDate(1);
+    date.setMonth(0);
+    return getStartOf.date(date);
+  },
+};
